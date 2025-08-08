@@ -20,9 +20,59 @@ export interface Instance {
   qrCode?: string;
 }
 
-// --- URLs da sua API n8n (use as URLs de PRODUÇÃO) ---
-const INSTANCES_API_URL = "https://n8nprod.ifpvps.com/webhook/instancias";
-const CREATE_INSTANCE_API_URL = "https://n8nprod.ifpvps.com/webhook/instancia";
+// --- Configuração da API n8n ---
+const API_BASE_URL = "https://n8nprod.ifpvps.com/webhook";
+const INSTANCES_API_URL = `${API_BASE_URL}/instancias`;       // GET: Listar instâncias
+const CREATE_INSTANCE_API_URL = `${API_BASE_URL}/instancia`;  // POST: Criar instância
+
+// --- Exemplo de chamada POST corrigida ---
+async function createInstance(instanceData) {
+  try {
+    const response = await fetch(CREATE_INSTANCE_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Adicione autenticação se necessário (ex: API Key)
+        // 'Authorization': 'Bearer SEU_TOKEN_AQUI'
+      },
+      body: JSON.stringify({
+        body: {  // Estrutura que seu n8n espera
+          ...instanceData,
+          owner_id: Number(instanceData.owner_id) // Garante que é número
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Erro ao criar instância");
+    }
+
+    return await response.json();
+
+  } catch (error) {
+    console.error("Erro na API:", error);
+    throw error; // Propaga o erro para tratamento no UI
+  }
+}
+
+// --- Como usar no React ---
+function InstanceForm() {
+  const handleSubmit = async (data) => {
+    try {
+      const result = await createInstance({
+        name: data.name,
+        owner_id: data.userId,
+        type: "default" // Campos adicionais conforme seu workflow
+      });
+      alert(`Instância criada! ID: ${result.id}`);
+    } catch (error) {
+      alert(`Falha: ${error.message}`);
+    }
+  };
+
+  // ... render do formulário
+}
 // ---------------------------------------------------------
 
 const WorkspaceDetail = () => {
