@@ -8,38 +8,55 @@
 
 @layer base {
   :root {
-    /* Brand Colors - Professional SaaS Palette */
-    --background: 0 0% 97%;
+    /* Brand Colors - Pantone Palette */
+    --background: 225 39% 94%;
     --foreground: 0 0% 10%;
     
     /* Surface Colors */
     --card: 0 0% 100%;
     --card-foreground: 0 0% 10%;
-    --card-border: 0 0% 92%;
+    --card-border: 225 20% 88%;
     
-    /* Interactive Colors */
-    --primary: 244 71% 62%;
+    /* Interactive Colors - Pantone 2240 C (Turquoise) */
+    --primary: 174 100% 29%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 244 71% 58%;
+    --primary-hover: 174 100% 25%;
+    
+    /* Secondary - Pantone 4133 C (Dark Gray) */
+    --secondary: 210 9% 31%;
+    --secondary-foreground: 0 0% 100%;
+    
+    /* Accent - Pantone 656 C (Light Gray) */
+    --accent: 225 39% 94%;
+    --accent-foreground: 210 9% 31%;
     
     /* Text Hierarchy */
     --text-primary: 0 0% 10%;
-    --text-secondary: 0 0% 42%;
-    --text-muted: 0 0% 58%;
+    --text-secondary: 210 9% 31%;
+    --text-muted: 225 15% 58%;
     
     /* UI Elements */
-    --border: 0 0% 92%;
+    --border: 225 20% 88%;
     --input: 0 0% 100%;
-    --input-border: 0 0% 88%;
-    --ring: 244 71% 62%;
+    --input-border: 225 20% 82%;
+    --ring: 174 100% 29%;
     
     /* States */
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 42%;
-    --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 10%;
+    --muted: 225 30% 96%;
+    --muted-foreground: 210 9% 31%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
+    
+    /* Sidebar Colors */
+    --sidebar-background: 210 9% 31%;
+    --sidebar-foreground: 225 30% 96%;
+    --sidebar-primary: 174 100% 29%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 9% 40%;
+    --sidebar-accent-foreground: 225 30% 96%;
+    --sidebar-border: 210 9% 25%;
+    --sidebar-ring: 174 100% 29%;
+
     
     /* Shadows */
     --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
@@ -49,22 +66,6 @@
     /* Spacing & Layout */
     --radius: 8px;
     --radius-lg: 12px;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
