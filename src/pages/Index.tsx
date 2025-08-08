@@ -7,8 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-// URL da sua API n8n para listar workspaces.
-// Certifique-se de que esta é a URL de PRODUÇÃO, não a de teste.
+// URLs da sua API n8n (use as URLs de PRODUÇÃO)
 const WORKSPACES_API_URL = "https://n8nprod.ifpvps.com/webhook/workspaces";
 const CREATE_WORKSPACE_API_URL = "https://n8nprod.ifpvps.com/webhook/workspace";
 
@@ -34,7 +33,7 @@ const Workspaces = () => {
       const formattedData = data.map((item: any) => ({
         id: item.id.toString(),
         name: item.nome_workspace,
-        instanceCount: item.instance_count || 0, // Assumindo que a API pode não retornar isso ainda
+        instanceCount: item.instance_count || 0, // Um valor padrão caso a API não envie
         createdAt: format(new Date(item.created_at), "dd 'de' MMM, yyyy", {
           locale: ptBR,
         }),
@@ -46,7 +45,7 @@ const Workspaces = () => {
       console.error("Erro ao carregar workspaces:", error);
       toast({
         title: "Erro de Rede",
-        description: "Não foi possível carregar os workspaces. Verifique sua conexão ou a API.",
+        description: "Não foi possível carregar os workspaces. Verifique a API.",
         variant: "destructive",
       });
     } finally {
@@ -74,12 +73,12 @@ const Workspaces = () => {
       }
 
       toast({
-        title: "Workspace criado",
+        title: "Workspace criado!",
         description: `O workspace "${name}" foi criado com sucesso.`,
       });
       
-      // Atualiza a lista de workspaces para mostrar o novo item
-      fetchWorkspaces();
+      // Atualiza a lista para mostrar o novo workspace que acabamos de criar
+      await fetchWorkspaces();
 
     } catch (error) {
       console.error("Erro ao criar workspace:", error);
@@ -97,18 +96,18 @@ const Workspaces = () => {
 
   const handleEditWorkspace = (workspace: Workspace) => {
     toast({
-      title: "Editar workspace",
-      description: `Funcionalidade de edição para ${workspace.name} será implementada.`,
+      title: "Função a ser implementada",
+      description: `A edição para "${workspace.name}" ainda não está conectada.`,
     });
   };
 
   const handleDeleteWorkspace = (workspace: Workspace) => {
-    // Aqui virá a chamada para a API de exclusão no futuro
+     // No futuro, aqui virá a chamada para a API de exclusão
     setWorkspaces(prev => prev.filter(w => w.id !== workspace.id));
     
     toast({
       title: "Workspace excluído (localmente)",
-      description: `O workspace "${workspace.name}" foi excluído da visualização.`,
+      description: `O workspace "${workspace.name}" foi removido da tela.`,
       variant: "destructive",
     });
   };
