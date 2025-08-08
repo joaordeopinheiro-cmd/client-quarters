@@ -1,37 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { WorkspaceHeader } from "@/components/workspace/WorkspaceHeader";
 import { WorkspaceGrid, type Workspace } from "@/components/workspace/WorkspaceGrid";
 import { CreateWorkspaceModal } from "@/components/workspace/CreateWorkspaceModal";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
-// Mock data for demonstration
-const mockWorkspaces: Workspace[] = [
-  {
-    id: "1",
-    name: "Projeto IFP",
-    instanceCount: 5,
-    createdAt: "08 de ago, 2025",
-  },
-  {
-    id: "2",
-    name: "Cliente Varejo ABC",
-    instanceCount: 3,
-    createdAt: "05 de ago, 2025",
-  },
-  {
-    id: "3",
-    name: "Campanha Marketing",
-    instanceCount: 8,
-    createdAt: "02 de ago, 2025",
-  },
-  {
-    id: "4",
-    name: "Suporte Técnico",
-    instanceCount: 12,
-    createdAt: "28 de jul, 2025",
-  },
-];
+// --- URLs da sua API n8n (use as URLs de PRODUÇÃO) ---
+const WORKSPACES_API_URL = "https://n8nprod.ifpvps.com/webhook/workspaces";
+const CREATE_WORKSPACE_API_URL = "https://n8nprod.ifpvps.com/webhook/workspace";
+// ---------------------------------------------------------
 
 const Workspaces = () => {
   const navigate = useNavigate();
@@ -40,59 +18,102 @@ const Workspaces = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { toast } = useToast();
 
-  // Simulate API loading
-  useEffect(() => {
-    const loadWorkspaces = async () => {
-      setIsLoading(true);
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setWorkspaces(mockWorkspaces);
+  // Função para buscar os workspaces da sua API
+  const fetchWorkspaces = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(WORKSPACES_API_URL);
+      if (!response.ok) {
+        throw new Error(`Erro na API: ${response.statusText}`);
+      }
+      const data = await response.json();
+
+      // Verifica se a resposta é uma lista (array)
+      if (!Array.isArray(data)) {
+        console.error("A resposta da API não é uma lista:", data);
+        throw new Error("Formato de dados inesperado da API.");
+      }
+      
+      const formattedData = data.map((item: any) => ({
+        id: item.id.toString(),
+        name: item.nome_workspace,
+        instanceCount: item.instance_count || 0,
+        createdAt: format(new Date(item.created_at), "dd 'de' MMM, yyyy", {
+          locale: ptBR,
+        }),
+      }));
+
+      setWorkspaces(formattedData);
+      
+    } catch (error) {
+      console.error("Erro ao carregar workspaces:", error);
+      toast({
+        title: "Erro de Rede",
+        description: "Não foi possível carregar os workspaces. Verifique o console para mais detalhes.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    };
-
-    loadWorkspaces();
-  }, []);
-
-  const handleCreateWorkspace = async (name: string) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    const newWorkspace: Workspace = {
-      id: Date.now().toString(),
-      name,
-      instanceCount: 0,
-      createdAt: new Date().toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      }),
-    };
-
-    setWorkspaces(prev => [newWorkspace, ...prev]);
-    
-    toast({
-      title: "Workspace criado",
-      description: `O workspace "${name}" foi criado com sucesso.`,
-    });
+    }
   };
 
+  // Chama a função de busca quando a página carrega
+  useEffect(() => {
+    fetchWorkspaces();
+  }, []);
+
+  // Função para criar um novo workspace via API
+  const handleCreateWorkspace = async (name: string) => {
+    try {
+      const response = await fetch(CREATE_WORKSPACE_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ nome_workspace: name }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Falha ao criar o workspace.");
+      }
+
+      toast({
+        title: "Workspace criado!",
+        description: `O workspace "${name}" foi criado com sucesso.`,
+      });
+      
+      // Atualiza a lista para mostrar o novo item
+      await fetchWorkspaces();
+
+    } catch (error) {
+      console.error("Erro ao criar workspace:", error);
+      toast({
+        title: "Erro ao Criar",
+        description: "Não foi possível criar o workspace.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Funções de interação (navegar, editar, deletar)
   const handleWorkspaceClick = (workspace: Workspace) => {
     navigate(`/workspaces/${workspace.id}`);
   };
 
   const handleEditWorkspace = (workspace: Workspace) => {
     toast({
-      title: "Editar workspace",
-      description: `Funcionalidade de edição para ${workspace.name} será implementada.`,
+      title: "Função a ser implementada",
+      description: `A edição para "${workspace.name}" ainda não está conectada.`,
     });
   };
 
   const handleDeleteWorkspace = (workspace: Workspace) => {
+    // No futuro, aqui virá a chamada para a API de exclusão
     setWorkspaces(prev => prev.filter(w => w.id !== workspace.id));
     
     toast({
-      title: "Workspace excluído",
-      description: `O workspace "${workspace.name}" foi excluído.`,
+      title: "Workspace excluído (localmente)",
+      description: `O workspace "${workspace.name}" foi removido da tela.`,
       variant: "destructive",
     });
   };
