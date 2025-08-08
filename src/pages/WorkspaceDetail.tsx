@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
-import { Plus } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreateInstanceModal } from "@/components/instance/CreateInstanceModal";
 import { InstanceCard } from "@/components/instance/InstanceCard";
 import { InstanceCardSkeleton } from "@/components/instance/InstanceCardSkeleton";
 import { InstanceEmptyState } from "@/components/instance/InstanceEmptyState";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 export interface Instance {
   id: string;
@@ -19,33 +20,10 @@ export interface Instance {
   qrCode?: string;
 }
 
-// Mock data
-const mockInstances: Instance[] = [
-  {
-    id: "1",
-    name: "Atendimento Geral",
-    phoneNumber: "+55 11 99999-0001",
-    status: "connected",
-    createdAt: "08 de ago, 2025",
-    lastActivity: "2 min atrás",
-  },
-  {
-    id: "2", 
-    name: "Vendas",
-    phoneNumber: "+55 11 99999-0002",
-    status: "connecting",
-    createdAt: "07 de ago, 2025",
-    lastActivity: "5 min atrás",
-  },
-  {
-    id: "3",
-    name: "Suporte",
-    phoneNumber: "+55 11 99999-0003", 
-    status: "disconnected",
-    createdAt: "06 de ago, 2025",
-    lastActivity: "1 hora atrás",
-  },
-];
+// --- URLs da sua API n8n (use as URLs de PRODUÇÃO) ---
+const INSTANCES_API_URL = "https://n8nprod.ifpvps.com/webhook/instancias"; // A URL base para listar
+const CREATE_INSTANCE_API_URL = "https://n8nprod.ifpvps.com/webhook/instancia";
+// ---------------------------------------------------------
 
 const WorkspaceDetail = () => {
   const { workspaceId } = useParams();
@@ -53,54 +31,161 @@ const WorkspaceDetail = () => {
   const [instances, setInstances] = useState<Instance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [workspaceName, setWorkspaceName] = useState("");
+  const [workspaceName, setWorkspaceName] = useState("Carregando..."); // Nome do workspace
   const { toast } = useToast();
 
   useEffect(() => {
     const loadWorkspaceData = async () => {
+      if (!workspaceId) return;
+
       setIsLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock workspace name based on ID
-      const workspaceNames: Record<string, string> = {
-        "1": "Projeto IFP",
-        "2": "Cliente Varejo ABC", 
-        "3": "Campanha Marketing",
-        "4": "Suporte Técnico",
-      };
-      
-      setWorkspaceName(workspaceNames[workspaceId || ""] || "Workspace");
-      setInstances(mockInstances);
-      setIsLoading(false);
+      try {
+        // Busca as instâncias do workspace específico
+        const response = await fetch(`${INSTANCES_API_URL}?workspaceId=${workspaceId}`);
+        if (!response.ok) {
+          throw new Error(`Erro na API: ${response.statusText}`);
+        }
+        const data = await response.json();
+
+        if (!Array.isArray(data)) {
+            console.error("A resposta da API não é uma lista:", data);
+            throw new Error("Formato de dados inesperado da API.");
+        }
+
+        const formattedData = data.map((item: any) => ({
+          id: item.id.toString(),
+          name: item.nome_instancia,
+          phoneNumber: item.numero_telefone || "Não conectado",
+          status: (item.status_whatsapp?.toLowerCase() || "disconnected") as Instance['status'],
+          createdAt: format(new Date(item.created_at), "dd 'de' MMM, yyyy", { locale: ptBR }),
+          lastActivity: "A implementar", // Este dado virá da API no futuro
+        }));
+        
+        setInstances(formattedData);
+
+        // (Opcional) No futuro, você pode buscar o nome do workspace de outra API
+        // Por agora, vamos manter um nome genérico ou o ID.
+        setWorkspaceName(`Workspace #${workspaceId}`);
+
+      } catch (error) {
+        console.error("Erro ao carregar dados do workspace:", error);
+        toast({
+          title: "Erro de Rede",
+          description: "Não foi possível carregar as instâncias deste workspace.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadWorkspaceData();
-  }, [workspaceId]);
+  }, [workspaceId, toast]);
 
   const handleCreateInstance = async (data: { name: string; phoneNumber: string }) => {
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    const newInstance: Instance = {
-      id: Date.now().toString(),
-      name: data.name,
-      phoneNumber: data.phoneNumber,
-      status: "connecting",
-      createdAt: new Date().toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: 'short', 
-        year: 'numeric',
-      }),
-      lastActivity: "Agora",
+    if (!workspaceId) return;
+
+    try {
+        await new Promise(resolve => setTimeout(resolve, 800)); // Simulação de delay
+        
+        const response = await fetch(CREATE_INSTANCE_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                nome_instancia: data.name,
+                workspace_id: parseInt(workspaceId, 10), // Garante que o ID seja um número
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error("Falha ao criar a instância.");
+        }
+
+        toast({
+            title: "Instância criada",
+            description: `A instância "${data.name}" foi criada com sucesso.`,
+        });
+
+        // Recarrega a lista para mostrar a nova instância
+        // Adicionando um pequeno delay para o n8n processar
+        setTimeout(() => {
+            const event = new Event('workspacesChanged');
+            window.dispatchEvent(event);
+        }, 1000);
+
+    } catch(error) {
+        console.error("Erro ao criar instância:", error);
+        toast({
+            title: "Erro ao Criar",
+            description: "Não foi possível criar a instância.",
+            variant: "destructive",
+        });
+    }
+  };
+  
+    useEffect(() => {
+        const reloadData = () => {
+            // A função já está sendo chamada pelo useEffect principal,
+            // mas podemos forçar um reload aqui se necessário.
+            if (workspaceId) {
+                // Re-chama a função de carregar dados
+                (async () => {
+                    await new Promise(resolve => setTimeout(resolve, 500)); // pequeno delay
+                    const loadWorkspaceData = async () => {
+      if (!workspaceId) return;
+
+      setIsLoading(true);
+      try {
+        // Busca as instâncias do workspace específico
+        const response = await fetch(`${INSTANCES_API_URL}?workspaceId=${workspaceId}`);
+        if (!response.ok) {
+          throw new Error(`Erro na API: ${response.statusText}`);
+        }
+        const data = await response.json();
+
+        if (!Array.isArray(data)) {
+            console.error("A resposta da API não é uma lista:", data);
+            throw new Error("Formato de dados inesperado da API.");
+        }
+
+        const formattedData = data.map((item: any) => ({
+          id: item.id.toString(),
+          name: item.nome_instancia,
+          phoneNumber: item.numero_telefone || "Não conectado",
+          status: (item.status_whatsapp?.toLowerCase() || "disconnected") as Instance['status'],
+          createdAt: format(new Date(item.created_at), "dd 'de' MMM, yyyy", { locale: ptBR }),
+          lastActivity: "A implementar", // Este dado virá da API no futuro
+        }));
+        
+        setInstances(formattedData);
+
+        // (Opcional) No futuro, você pode buscar o nome do workspace de outra API
+        // Por agora, vamos manter um nome genérico ou o ID.
+        setWorkspaceName(`Workspace #${workspaceId}`);
+
+      } catch (error) {
+        console.error("Erro ao carregar dados do workspace:", error);
+        toast({
+          title: "Erro de Rede",
+          description: "Não foi possível carregar as instâncias deste workspace.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    setInstances(prev => [newInstance, ...prev]);
-    
-    toast({
-      title: "Instância criada",
-      description: `A instância "${data.name}" foi criada com sucesso.`,
-    });
-  };
+    loadWorkspaceData();
+                })();
+            }
+        };
+
+        window.addEventListener('workspacesChanged', reloadData);
+
+        return () => {
+            window.removeEventListener('workspacesChanged', reloadData);
+        };
+    }, [workspaceId]);
 
   const handleInstanceClick = (instance: Instance) => {
     navigate(`/workspaces/${workspaceId}/instances/${instance.id}`);
@@ -110,14 +195,14 @@ const WorkspaceDetail = () => {
     setInstances(prev => prev.filter(i => i.id !== instance.id));
     
     toast({
-      title: "Instância excluída",
-      description: `A instância "${instance.name}" foi excluída.`,
+      title: "Instância excluída (localmente)",
+      description: `A instância "${instance.name}" foi removida da tela.`,
       variant: "destructive",
     });
   };
 
   return (
-    <div className="container mx-auto px-6 py-8 max-w-7xl">
+    <div className="container mx_auto px-6 py-8 max-w-7xl">
       <div className="flex items-center justify-between mb-8">
         <div>
           <Button 
