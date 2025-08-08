@@ -18,7 +18,6 @@ const Workspaces = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { toast } = useToast();
 
-  // Função para buscar os workspaces da sua API
   const fetchWorkspaces = async () => {
     setIsLoading(true);
     try {
@@ -26,17 +25,14 @@ const Workspaces = () => {
       if (!response.ok) {
         throw new Error(`Erro na API: ${response.statusText}`);
       }
-      const responseData = await response.json();
-      
-      // A resposta da API agora deve ser { "data": [...] }
-      const dataArray = responseData.data;
+      const data = await response.json();
 
-      if (!Array.isArray(dataArray)) {
-        console.error("A resposta da API não continha uma lista (array) em 'data':", responseData);
+      if (!Array.isArray(data)) {
+        console.error("A resposta da API não é uma lista:", data);
         throw new Error("Formato de dados inesperado da API.");
       }
       
-      const formattedData = dataArray.map((item: any) => ({
+      const formattedData = data.map((item: any) => ({
         id: item.id.toString(),
         name: item.nome_workspace,
         instanceCount: item.instance_count || 0,
@@ -51,22 +47,19 @@ const Workspaces = () => {
       console.error("Erro ao carregar workspaces:", error);
       toast({
         title: "Erro de Rede",
-        description: "Não foi possível carregar os workspaces. Verifique o console para mais detalhes.",
+        description: "Não foi possível carregar os workspaces. Verifique o console.",
         variant: "destructive",
       });
-      // Limpa os workspaces em caso de erro para mostrar o estado vazio
       setWorkspaces([]); 
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Chama a função de busca quando a página carrega
   useEffect(() => {
     fetchWorkspaces();
   }, []);
 
-  // Função para criar um novo workspace via API
   const handleCreateWorkspace = async (name: string) => {
     try {
       const response = await fetch(CREATE_WORKSPACE_API_URL, {
@@ -86,7 +79,6 @@ const Workspaces = () => {
         description: `O workspace "${name}" foi criado com sucesso.`,
       });
       
-      // Atualiza a lista para mostrar o novo item
       await fetchWorkspaces();
 
     } catch (error) {
